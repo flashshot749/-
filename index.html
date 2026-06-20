@@ -230,21 +230,24 @@ body{
     background:#fff;
     border-top:1px solid #eee;
     flex-shrink:0;
-    padding-bottom:env(safe-area-inset-bottom);
+    padding:8px 0;
+    padding-bottom:calc(8px + env(safe-area-inset-bottom));
 }
 
 .nav div{
     flex:1;
     text-align:center;
-    padding:10px 0;
-    font-size:12px;
+    padding:14px 0;
+    font-size:15px;
     color:#888;
     cursor:pointer;
+    font-weight:500;
 }
 
 .nav .active{
     color:#1a73e8;
-    font-weight:600;
+    font-weight:700;
+    font-size:16px;
 }
 
 /* ===== quiz bar ===== */
@@ -777,11 +780,6 @@ body{
                     </div>
                 </div>
 
-                <div class="empty" id="recentEmpty">
-                    暂无学习记录<br/>
-                    快去刷题吧～
-                </div>
-                <div id="recentList" style="text-align:left;margin-top:14px"></div>
                 <div class="data-bar">
                     <button onclick="exportData()">📤 导出备份</button>
                     <button onclick="importData()">📥 导入恢复</button>
@@ -792,7 +790,7 @@ body{
         <!-- Quiz Active (hidden on dashboard) -->
         <div class="hidden" id="quizActive">
             <div class="quiz-bar">
-                <button class="btn btn-sm btn-outline" style="margin:0;padding:6px 12px;font-size:12px;border:none;color:#999" onclick="resetQuiz()">← 返回</button>
+                <button class="btn btn-sm btn-outline" style="margin:0;padding:10px 18px;font-size:15px;font-weight:700;border:2px solid #1a73e8;color:#1a73e8;border-radius:8px;background:#e8f0fe" onclick="resetQuiz()">← 返回</button>
                 <span class="counter" id="qzCounter">第1/10题</span>
                 <span class="tag tag-good" id="qzGood">✅ <span id="qzGoodNum">0</span></span>
                 <span class="tag tag-bad" id="qzBad">❌ <span id="qzBadNum">0</span></span>
@@ -8420,11 +8418,6 @@ function updateDashboardStats(){
     const pct=s.done>0?Math.round((s.correct||0)/(s.done||1)*100):0;
     document.getElementById('statRate').textContent=pct+'%';
     document.getElementById('statWrong').textContent=s.wrong||0;
-    const rec=ld(KR2)||[];
-    if(rec.length>0){
-        document.getElementById('recentEmpty').style.display='none';
-        document.getElementById('recentList').innerHTML=rec.slice(0,5).map(r=>`<div class="recent-row"><span class="rec-date">${r.date}</span><span class="rec-ch">${r.total}题</span><span class="rec-score" style="color:${r.pct>=60?'#2e7d32':'#c62828'}">${r.pct}分</span></div>`).join('');
-    }
 }
 
 // ==================== WRONG BOOK ====================
@@ -8632,13 +8625,6 @@ function init(){
     });
 })();
 
-// Exit confirmation: ask before leaving the page
-window.addEventListener('beforeunload',function(e){
-    e.preventDefault();
-    e.returnValue='确定要退出刷题页面吗？';
-    return '确定要退出刷题页面吗？';
-});
-
 // ==================== SWIPE NAVIGATION ====================
 (function(){
     var sx=0,sy=0,swiping=false;
@@ -8652,7 +8638,6 @@ window.addEventListener('beforeunload',function(e){
         if(!swiping||e.touches.length!==1)return;
         var dx=Math.abs(e.touches[0].pageX-sx);
         var dy=Math.abs(e.touches[0].pageY-sy);
-        // Block browser back/forward gesture
         if(dx>dy&&dx>15){e.preventDefault();}
     },{passive:false});
 
@@ -8662,45 +8647,34 @@ window.addEventListener('beforeunload',function(e){
         var dy=e.changedTouches[0].pageY-sy;
         var absDx=Math.abs(dx),absDy=Math.abs(dy);
         swiping=false;
-
-        // Only handle horizontal swipes (not vertical scrolling)
         if(absDx<60||absDy>absDx)return;
 
         var isQuiz=!document.getElementById('quizActive').classList.contains('hidden');
-        var curPg='';
-        document.querySelectorAll('.page').forEach(function(p){
-            if(p.classList.contains('active'))curPg=p.id;
-        });
-
-        // In quiz mode: swipe -> return to dashboard
+        // If not on dashboard -> go back to dashboard
         if(isQuiz){
             resetQuiz();
             return;
         }
-
-        // On dashboard (pg-quiz with dashContent visible)
-        if(curPg==='pg-quiz'){
-            exitCount++;
-            if(exitCount===1){
-                toast('再滑一次退出页面','info');
-                clearTimeout(exitTimer);
-                exitTimer=setTimeout(function(){exitCount=0;},2000);
-            }else{
-                clearTimeout(exitTimer);exitCount=0;
-                // Show confirm before exit
-                if(confirm('确定要退出刷题页面吗？')){
-                    window.close()||history.back();
-                }
-            }
+        var curPg='';
+        document.querySelectorAll('.page').forEach(function(p){
+            if(p.classList.contains('active'))curPg=p.id;
+        });
+        if(curPg!=='pg-quiz'){
+            resetQuiz();
+            goPage('quiz');
             return;
         }
-
-        // On other pages: swipe left/right to navigate between tabs
-        var tabs=['quiz','wrong','fav','memo'];
-        var idx=tabs.indexOf(curPg.replace('pg-',''));
-        if(idx>=0){
-            if(dx<0&&idx<tabs.length-1)goPage(tabs[idx+1]); // swipe left -> next
-            if(dx>0&&idx>0)goPage(tabs[idx-1]); // swipe right -> prev
+        // On dashboard -> swipe twice to exit
+        exitCount++;
+        if(exitCount===1){
+            toast('再滑一次退出页面','info');
+            clearTimeout(exitTimer);
+            exitTimer=setTimeout(function(){exitCount=0;},2000);
+        }else{
+            clearTimeout(exitTimer);exitCount=0;
+            if(confirm('确定要退出刷题页面吗？')){
+                window.close()||history.back();
+            }
         }
     });
 })();
