@@ -703,6 +703,81 @@ body{
 @media(min-width:481px){
     .app{border-left:1px solid #e8eaed;border-right:1px solid #e8eaed}
 }
+
+/* ===== INSTALL BUTTON ===== */
+.install-btn{
+    display:block;
+    width:100%;
+    padding:14px;
+    margin-top:16px;
+    background:linear-gradient(135deg,#1a73e8,#1557b0);
+    color:#fff;
+    border:none;
+    border-radius:12px;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    transition:.2s;
+}
+.install-btn:active{transform:scale(.97)}
+.install-btn.installed{background:#e8f5e9;color:#2e7d32;pointer-events:none}
+
+/* ===== INSTALL GUIDE OVERLAY ===== */
+.install-guide{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.5);
+    z-index:9999;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    animation:fadeIn .2s;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.guide-card{
+    background:#fff;
+    border-radius:20px;
+    padding:28px 24px;
+    margin:20px;
+    max-width:360px;
+    width:100%;
+    text-align:center;
+    animation:fadeSlideUp .3s ease;
+}
+.guide-card h3{margin:0 0 8px;font-size:20px}
+.guide-card p{color:#666;font-size:14px;margin:0 0 16px;line-height:1.6}
+.guide-card .url-box{
+    background:#f5f7fb;
+    border:1px dashed #ccc;
+    border-radius:10px;
+    padding:12px;
+    font-size:13px;
+    word-break:break-all;
+    color:#333;
+    margin-bottom:16px;
+    text-align:left;
+}
+.guide-card .copy-btn{
+    width:100%;
+    padding:14px;
+    background:#c0392b;
+    color:#fff;
+    border:none;
+    border-radius:12px;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    margin-bottom:8px;
+}
+.guide-card .copy-btn.copied{background:#2e7d32}
+.guide-card .close-guide{
+    background:none;
+    border:none;
+    color:#999;
+    font-size:14px;
+    padding:8px;
+    cursor:pointer;
+}
 </style>
 
 <!-- PWA Meta -->
@@ -792,6 +867,7 @@ body{
                 <div class="data-bar">
                     <button onclick="exportData()">📤 导出备份</button>
                     <button onclick="importData()">📥 导入恢复</button>
+                    <button class="install-btn" id="installBtn" onclick="installApp()" style="display:none">📲 安装到桌面</button>
                 </div>
             </div>
         </div>
@@ -882,6 +958,95 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js', { scope: './' })
     .then(reg => console.log('✅ SW 已注册', reg.scope))
     .catch(err => console.log('⚠️ SW 注册失败', err));
+}
+
+// ==================== PWA 安装逻辑 ====================
+let deferredPrompt = null;
+let isInstalled = false;
+
+// 检查是否已安装
+if (window.matchMedia('(display-mode: standalone)').matches) {
+  isInstalled = true;
+}
+
+// 监听 install 事件（Chrome/Edge）
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  var btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = 'block';
+});
+
+// 监听安装完成
+window.addEventListener('appinstalled', function() {
+  isInstalled = true;
+  deferredPrompt = null;
+  var btn = document.getElementById('installBtn');
+  if (btn) { btn.textContent = '✅ 已安装到桌面'; btn.classList.add('installed'); }
+  console.log('✅ PWA 已安装');
+});
+
+// 点击安装按钮
+function installApp() {
+  if (isInstalled) return;
+
+  // 支持 PWA 安装的浏览器
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(result) {
+      if (result.outcome === 'accepted') {
+        isInstalled = true;
+        var btn = document.getElementById('installBtn');
+        if (btn) { btn.textContent = '✅ 已安装'; btn.classList.add('installed'); }
+      }
+      deferredPrompt = null;
+    });
+    return;
+  }
+
+  // 不支持 PWA → 弹出引导
+  showGuide();
+}
+
+function showGuide() {
+  var guide = document.getElementById('installGuide');
+  var urlBox = document.getElementById('guideUrl');
+  if (guide && urlBox) {
+    urlBox.textContent = window.location.href;
+    guide.style.display = 'flex';
+  }
+}
+
+function closeGuide() {
+  var guide = document.getElementById('installGuide');
+  if (guide) guide.style.display = 'none';
+}
+
+function copyGuideUrl() {
+  var url = window.location.href;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function() {
+      var btn = document.getElementById('copyBtn');
+      if (btn) { btn.textContent = '✅ 已复制！去 Edge 粘贴打开'; btn.classList.add('copied'); }
+    }).catch(function() {
+      fallbackCopy(url);
+    });
+  } else {
+    fallbackCopy(url);
+  }
+}
+
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  var btn = document.getElementById('copyBtn');
+  if (btn) { btn.textContent = '✅ 已复制！去 Edge 粘贴打开'; btn.classList.add('copied'); }
 }
 
 // ==================== DATA ====================
@@ -8779,6 +8944,18 @@ function init(){
 })();
 
 </script>
+
+
+<!-- ====== PWA 安装引导弹窗 ====== -->
+<div class="install-guide" id="installGuide" style="display:none" onclick="if(event.target===this)closeGuide()">
+    <div class="guide-card">
+        <h3>📲 安装到桌面</h3>
+        <p>你的浏览器不支持一键安装<br>请复制下方链接，用 <b>Edge 浏览器</b> 打开</p>
+        <div class="url-box" id="guideUrl"></div>
+        <button class="copy-btn" id="copyBtn" onclick="copyGuideUrl()">📋 一键复制链接</button>
+        <button class="close-guide" onclick="closeGuide()">关闭</button>
+    </div>
+</div>
 
 </body>
 </html>
