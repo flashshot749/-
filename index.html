@@ -82,7 +82,7 @@ body{
 
 /* ===== PAGE CONTENT ===== */
 .page{display:none}
-.page.active{display:block;flex:1;animation:fadeSlideUp .4s ease}
+.page.active{display:block;flex:1;overflow-y:auto;animation:fadeSlideUp .4s ease}
 
 /* ===== CARD ===== */
 .card{
@@ -630,6 +630,21 @@ body{
     font-weight:600;
     box-shadow:0 2px 6px rgba(0,0,0,0.06);
 }
+
+/* ===== memo star ===== */
+.memo-star{
+    display:inline-block;
+    padding:2px 8px;
+    margin-left:6px;
+    font-size:18px;
+    cursor:pointer;
+    border:none;
+    background:none;
+    vertical-align:middle;
+    user-select:none;
+    -webkit-user-select:none;
+}
+.memo-star.checked{color:#e6a817}
 
 .memo-item{
     border-bottom:1px solid #f0f0f0;
@@ -8412,9 +8427,11 @@ function initSelectors(){
 }
 
 // ==================== STORAGE ====================
-const KW='jjf_wrong3', KF='jjf_fav3', KS2='jjf_stats2', KR2='jjf_recent2', KQ='jjf_quiz2';
+const KW='jjf_wrong3', KF='jjf_fav3', KS2='jjf_stats2', KR2='jjf_recent2', KQ='jjf_quiz2', KMB='jjf_memo_bk';
 function ld(k){try{var v=JSON.parse(localStorage.getItem(k));return v!=null?v:null}catch{return null}}
 function sv(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function tgMB(idx){var a=ld(KMB)||[];if(a.includes(idx)){a=a.filter(x=>x!==idx);sv(KMB,a);return false}else{a.push(idx);sv(KMB,a);return true}}
+function isMB(idx){var a=ld(KMB);return a?a.includes(idx):false}
 function isW(id){var a=ld(KW);return a?a.includes(id):false}
 function isF(id){var a=ld(KF);return a?a.includes(id):false}
 function addW(id){var a=ld(KW)||[];if(!a.includes(id)){a.push(id);sv(KW,a)}}
@@ -8737,6 +8754,7 @@ function renderFav(){
         <div class="list-item fav-item" id="fvi-${q.id}">
             <div class="li-meta"><span>${q.type}</span><span>${q.chapter}</span></div>
             <div class="li-q">${q.question}</div>
+            <div class="li-opts" style="font-size:13px;color:#555;margin-bottom:6px;line-height:1.8">${q.options.map(o=>'<div>'+o+'</div>').join('')}</div>
             <div class="li-ans">正确答案：<strong>${q.answer}</strong></div>
             <div class="li-act"><button class="btn btn-sm btn-outline" style="border-color:#e6a817;color:#b8860b" onclick="delF(${q.id})">取消收藏</button></div>
         </div>`).join('');
@@ -8776,10 +8794,12 @@ function renderMemo(){
         t.classList.toggle("active",t.textContent===memoCat);
     });
     el.innerHTML=items.map((m,i)=>{
+        var gIdx=MEMO.indexOf(m);
+        var starred=isMB(gIdx);
         let idx=m.text.indexOf("。");
         if(idx<0)idx=Math.min(60,m.text.length);
         let preview=m.text.substring(0,idx+1);
-        return '<div class="memo-item" onclick="this.classList.toggle(\'open\')"><div class="memo-ch">'+m.chapter+'</div><div class="memo-q">'+preview+'</div><div class="memo-a">'+m.text.replace(/\n/g,"<br/>")+'</div></div>';
+        return '<div class="memo-item" onclick="this.classList.toggle(\'open\')"><div class="memo-ch">'+m.chapter+'</div><div class="memo-q">'+preview+'<button class="memo-star'+(starred?' checked':'')+'" onclick="event.stopPropagation();var r=tgMB('+gIdx+');this.classList.toggle(\'checked\',r)" title="标记已背">★</button></div><div class="memo-a">'+m.text.replace(/\n/g,"<br/>")+'</div></div>';
     }).join("");
 }
 
@@ -8831,6 +8851,7 @@ function exportData(){
     const data={
         wrong:ld(KW),fav:ld(KF),
         stats:ld(KS2),recent:ld(KR2),
+        memoBack:ld(KMB),
         exported:new Date().toISOString()
     };
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -8855,6 +8876,7 @@ function importData(){
                 if(data.fav)sv(KF,data.fav);
                 if(data.stats)sv(KS2,data.stats);
                 if(data.recent)sv(KR2,data.recent);
+                if(data.memoBack)sv(KMB,data.memoBack);
                 updateDashboardStats();
                 if(document.getElementById('pg-wrong').classList.contains('active'))renderWrong();
                 if(document.getElementById('pg-fav').classList.contains('active'))renderFav();
@@ -8936,9 +8958,7 @@ function init(){
             exitTimer=setTimeout(function(){exitCount=0;},2000);
         }else{
             clearTimeout(exitTimer);exitCount=0;
-            if(confirm('确定要退出刷题页面吗？')){
-                window.close()||history.back();
-            }
+            window.close()||history.back();
         }
     });
 })();
