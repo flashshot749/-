@@ -1,9 +1,11 @@
 // 经济法刷题 - Service Worker
-const CACHE_NAME = 'jingjifa-v2';
+const CACHE_NAME = 'jingjifa-v3';
 const ASSETS = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './icon-180.png',
+  './icon-512.png'
 ];
 
 // 安装：预缓存核心文件

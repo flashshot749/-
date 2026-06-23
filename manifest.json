@@ -1,7 +1,7 @@
 {
   "name": "经济法刷题 - 刘大洪第三版",
   "short_name": "经济法刷题",
-  "description": "刘大洪《经济法》第三版期末复习刷题工具，667道选择题+133条背诵资料",
+  "description": "刘大洪《经济法》第三版期末复习刷题工具，671道选择题+131条背诵资料",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -11,9 +11,14 @@
   "lang": "zh-CN",
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
